@@ -1,0 +1,69 @@
+<!doctype html>
+
+<html>
+<head>
+  <title>PolymerFirebaseCodelabPub</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.min.js"></script>
+
+  <link rel="import" href="bower_components/iron-icons/iron-icons.html">
+  <link rel="import" href="bower_components/paper-toolbar/paper-toolbar.html">
+  <!-- <link rel="import" href="bower_components/font-roboto/roboto.html"> -->
+  <link rel="import" href="bower_components/paper-button/paper-button.html">
+  <link rel="import" href="bower_components/paper-checkbox/paper-checkbox.html">
+  <link rel="import" href="bower_components/paper-icon-button/paper-icon-button.html">
+  <link rel="import" href="bower_components/paper-fab/paper-fab.html">
+  <link rel="import" href="bower_components/paper-tabs/paper-tabs.html">
+  <link rel="import" href="bower_components/paper-toast/paper-toast.html">
+
+  <link rel="import" href="bower_components/paper-input/paper-input.html">
+  <link rel="import" href="bower_components/polymerfire/firebase-app.html">
+  <link rel="import" href="bower_components/polymerfire/firebase-auth.html">
+  <link rel="import" href="bower_components/polymerfire/firebase-document.html">
+  <link rel="import" href="bower_components/polymerfire/firebase-query.html">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body unresolved>
+  <template is="dom-bind" id="app">
+    <form on-submit="addItem">
+      <paper-input value="{{newItemValue}}" 
+        placeholder="Enter your item here..."></paper-input>
+      <paper-button on-click="addItem">Add</paper-button>
+    </form>
+    <template is="dom-repeat" items="{{items}}">
+      <div>
+        <paper-icon-button icon="delete" 
+          on-click="deleteItem"></paper-icon-button>
+        <paper-checkbox on-change="toggleItem"
+          checked="{{item.done}}">[[item.text]]</paper-checkbox>
+      </div>
+    </template>
+
+    <paper-button on-click="login">login</paper-button>
+    <firebase-app
+      auth-domain="YOUR-FIREBASE-ID.firebaseapp.com"
+      database-url="https://YOUR-FIREBASE-ID.firebaseio.com"
+      api-key="YOUR-API-KEY"
+      storage-bucket="YOUR-FIREBASE-ID.appspot.com"
+      messaging-sender-id="YOUR-SENDER-ID">
+    </firebase-app>
+    <firebase-auth
+      provider="[[firebaseProvider]]"
+      user="{{user}}"
+      on-error="handleError"></firebase-auth>
+    <firebase-query
+      data="{{items}}"
+      path="/user/[[user.uid]]"></firebase-query>
+    <firebase-document
+      data="{{data}}"></firebase-document>
+    <paper-toast id="errorToast"></paper-toast>    
+  </template>
+  <script src="main.js"></script>
+</body>
+</html>
