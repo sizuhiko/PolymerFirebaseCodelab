@@ -60,7 +60,7 @@ Chrome Dev Editorは、すべての依存関係をダウンロードしてイン
 
 Firebaseに接続するための変数を設定します。
 Firebaseインスタンスのダッシュボードを開き、`Authentication` から `ウェブ設定` をクリックして表示された画面のとおり設定した
-<firebase-app> エレメントを追加します。
+`<firebase-app>` エレメントを追加します。
 
 ![](4-web-settings.png)
 
@@ -83,10 +83,10 @@ Firebase に匿名ログインできるように、app 変数宣言のすぐ下�
 app.firebaseProvider = 'anonymous';
 ```
 
-ユーザーを認証するには、<firebase-auth> 要素を使用します。
+ユーザーを認証するには、`<firebase-auth>` 要素を使用します。
 簡単にするために、ログインボタンを用意して、クリックされたらログインするようにします。
 
-<dom-repeat> エレメントの下に追加します。
+`<dom-repeat>` エレメントの下に追加します。
 
 #### index.html
 
@@ -118,3 +118,121 @@ app.handleError = function(event) {
 };
 ```
 
+## 5。Firebaseに永続化する
+
+認証が設定されたので、ユーザーの個人データストアにアクセスできます。
+`user` の変更を検知して、該当するパスから `items` にデータを取得します。
+
+#### index.html
+
+```html
+<firebase-query
+  data="{{items}}"
+  path="/user/[[user.uid]]"></firebase-query>
+```
+
+ログイン後にFirebaseのデータと同期しようとしているので、最初に追加したダミーデータを削除してください。
+代わりにFirebaseとデータを同期するために `<firebase-document>`　エレメントを追加してください。
+
+#### index.html
+
+```html
+<firebase-document
+  data="{{data}}"></firebase-document>
+```
+
+Firebaseと `data` を使用して同期するように、3つのイベントハンドラを更新する必要があります。
+
+#### main.js
+
+```js
+app.addEventListener('dom-change', function(event) {
+  app.database = document.querySelector('firebase-document');
+});
+
+app.addItem = function(event) {
+  event.preventDefault(); // Don't send the form!
+  app.data = {
+    done: false,
+    text: app.newItemValue
+  };
+
+  return app.database.save('/user/' + app.user.uid).then(function() {
+    app.database.reset();
+    app.newItemValue = '';
+  }.bind(this));
+};
+
+app.toggleItem = function(event) {
+  app.data = {
+    done: !event.model.item.done
+  };
+  return app.database.save('/user/' + app.user.uid + '/' + event.model.item.$key).then(function() {
+    app.database.reset();
+  }.bind(this));  
+};
+
+app.deleteItem = function(event) {
+  app.database.path = '/user/' + app.user.uid + '/' + event.model.item.$key;
+  return app.database.destroy();
+};
+```
+
+Dev Editorの再生ボタンをクリックして、Firebaseと連携していることを確認してください。
+アイテムの追加、アイテムのチェック、アイテムの削除。その後、ページをリロードして、データが失われていないことを確認します。
+
+## 6. ユーザーのデータを保護する
+
+いまのところ作成した TODO リストは安全ではありません。
+誰かがあなたの uid を知ったいたら、DevToolsを開いてデータにアクセスするだけです。
+そこで、Firebaseの "Database - ルール" 機能はこの問題を解決します。
+ユーザーのドキュメントへのアクセスをそのユーザーのみに制限するには、次の操作を行います。
+
+1. Firebaseダッシュボードから `Database` 移動する
+1. 「ルール」に進みます。
+1. 次のようにルールを変更します。
+
+#### セキュリティ＆ルール
+
+```
+{
+    "rules": {
+        "user": {
+          "$uid": {
+            ".read": "auth != null && auth.uid == $uid",
+            ".write": "auth != null && auth.uid == $uid"
+          }
+        }
+    }
+}
+```
+
+このルールは、ユーザーが自分のデータを読み書きできることを保証します。
+ログインした後で、DevToolsから `user` の `uid` を変更するとエラーになります。
+
+## 7. Googleログインの使用
+
+あなたのアプリは現在ブラウザインスタンスにリンクされているので（匿名ユーザーはローカルストレージに保存されます）、
+ユーザーはリストを作成したマシンからTODOリストにしかアクセスできません。
+これを変更するには、一貫性のあるuidを複数のデバイスから使用する必要があります。
+これを達成するには、Googleログインを使用する方法があります。
+
+### Googleログインの有効化
+
+Firebaseダッシュボードから、「Authentication」に移動し、「ログイン方法」タブに移動し、Googleログインを有効にします。
+
+![](7-google-login.png)
+
+あなたのアプリは、今、Googleの資格情報を使用してログインすることができます。
+残った最後の変更は、アプリにGoogle認証をサポートしていることを伝えることです。
+次のように firebaseProvider 変数をgoogleへ変更します。
+
+#### main.js
+
+```js
+app.firebaseProvider = 'google';
+```
+
+これは 本当に面白いです！
+複数のブラウザを開き、Googleアカウントでログインしていない場合はログインし、TODOリストはすべてのブラウザで同期されていることを確認してください。
+もう一度認証を確認したい場合は、シークレットウィンドウを開くこともできます。
